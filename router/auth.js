@@ -209,7 +209,8 @@ router.put('/adminOrders', async (req, res) => {
             userid: req.body.uid,
             productid: req.body.pid,
             quantity: req.body.quantity,
-            phone: req.body.phone
+            phone: req.body.phone,
+            status: false
         }
         const isadded = await Admin.find({ orders: { $elemMatch: prod } });
 
@@ -244,7 +245,8 @@ router.put('/yourOrders', async (req, res) => {
         var prod = {
             companyName: req.body.companyName,
             productid: req.body.pid,
-            quantity: req.body.quantity
+            quantity: req.body.quantity,
+            status: false
         }
         const isadded = await User.find({ yourOrders: { $elemMatch: prod } });
 
