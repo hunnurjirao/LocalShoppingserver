@@ -283,7 +283,7 @@ router.put('/addCartProducts', async (req, res) => {
             cartProductPrice: req.body.price,
             cartProductCompanyName: req.body.companyName
         }
-        const isadded = await User.find({ cartProducts: { $elemMatch: prod } });
+        const isadded = await User.findById({ _id: req.body.uid }, { cartProducts: { $elemMatch: prod } });
 
         if (!(isadded.length > 0)) {
             await User.findOneAndUpdate(
@@ -418,26 +418,34 @@ router.put('/editAdminStatus', async (req, res) => {
 })
 
 router.put('/editUserStatus', async (req, res) => {
-    try {
-        await User.findOneAndUpdate(
-            { orders: { _id: req.body.uid } },
-            {
-                $set: {
-                    orders: { status: req.body.status }
+    // try {
+    //     var details = {
 
-                }
-            },
-            {
-                new: true,
-                useFindAndModify: false
-            }
-        )
-        res.status(201).json({ message: "Status Updated" })
+    //         productid: req.body.pid,
+    //         quantity: req.body.quantity,
+
+    //     }
+    //     console.log(req.body.uid);
+    //     await User.findOneAndUpdate(
+    //         { yourOrders: { productid: req.body.pid } },
+    //         {
+    //             $set: {
+    //                 orders: { status: req.body.status }
+
+    //             }
+    //         },
+    //         {
+    //             new: true,
+    //             useFindAndModify: false
+    //         }
+    //     )
+
+    //     res.status(201).json({ message: "Status Updated" })
 
 
-    } catch (error) {
-        console.log(error);
-    }
+    // } catch (error) {
+    //     console.log(error);
+    // }
 })
 
 router.delete('/deleteProduct', async (req, res) => {
