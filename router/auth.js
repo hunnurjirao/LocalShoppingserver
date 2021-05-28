@@ -285,7 +285,7 @@ router.put('/addCartProducts', async (req, res) => {
         }
         const isadded = await User.findById({ _id: req.body.uid }, { cartProducts: { $elemMatch: prod } });
 
-        if (!(isadded.length > 0)) {
+        if (!(isadded.cartProducts.length > 0)) {
             await User.findOneAndUpdate(
                 { _id: req.body.uid },
                 {
@@ -393,60 +393,75 @@ router.put('/editProduct', async (req, res) => {
     }
 })
 
-router.put('/editAdminStatus', async (req, res) => {
-    try {
-        await Admin.findOneAndUpdate(
-            { orders: { _id: req.body.uid } },
-            {
-                $set: {
-                    orders: { status: req.body.status }
+// router.put('/editAdminStatus', async (req, res) => {
+//     try {
+//         console.log(req.body.uid);
+//         var prod = {
+//             _id: req.body.uid,
+//             userid: req.body.userid,
+//             productid: req.body.productid,
+//             quantity: req.body.quantity,
+//             phone: req.body.phone,
+//             status: req.body.status
 
-                }
-            },
-            {
-                new: true,
-                useFindAndModify: false
-            }
-        )
+//         }
+//         const find = await Admin.findById({ _id: req.body.adminid }, { orders: { _id: req.body.uid } })
 
-        res.status(201).json({ message: "Status Updated" })
+//         const ans = await Admin.findByIdAndUpdate(
+//             { _id: req.body.adminid },
+//             {
+//                 $set: {
+//                     orders: prod
 
+//                 }
+//             },
+//             {
+//                 new: true,
+//                 useFindAndModify: false
+//             }
+//         )
+//         console.log(find)
+//         console.log(ans);
 
-    } catch (error) {
-        console.log(error);
-    }
-})
-
-router.put('/editUserStatus', async (req, res) => {
-    // try {
-    //     var details = {
-
-    //         productid: req.body.pid,
-    //         quantity: req.body.quantity,
-
-    //     }
-    //     console.log(req.body.uid);
-    //     await User.findOneAndUpdate(
-    //         { yourOrders: { productid: req.body.pid } },
-    //         {
-    //             $set: {
-    //                 orders: { status: req.body.status }
-
-    //             }
-    //         },
-    //         {
-    //             new: true,
-    //             useFindAndModify: false
-    //         }
-    //     )
-
-    //     res.status(201).json({ message: "Status Updated" })
+//         res.status(201).json({ message: "Status Updated" })
 
 
-    // } catch (error) {
-    //     console.log(error);
-    // }
-})
+//     } catch (error) {
+//         console.log(error);
+//     }
+// })
+
+// router.put('/editUserStatus', async (req, res) => {
+//     try {
+//         var prod = {
+
+//             productid: req.body.pid,
+//             quantity: req.body.quantity,
+
+//         }
+//         const isadded = await User.findById({ _id: req.body.uid }, { yourOrders: { $elemMatch: prod } });
+//         console.log(isadded);
+//         // await User.findOneAndUpdate(
+//         //     { yourOrders: { productid: req.body.pid } },
+//         //     {
+//         //         $set: {
+//         //             orders: { status: req.body.status }
+
+//         //         }
+//         //     },
+//         //     {
+//         //         new: true,
+//         //         useFindAndModify: false
+//         //     }
+//         // )
+
+//         res.status(201).json({ message: "Status Updated" })
+
+
+//     } catch (error) {
+//         console.log(error);
+//     }
+// })
 
 router.delete('/deleteProduct', async (req, res) => {
     await AdminProducts.deleteOne(
