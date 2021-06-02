@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const authenticateUser = require('../middleware/authenticateUser')
 const authenticateAdmin = require('../middleware/authenticateAdmin')
 require('../db/conn')
-var twilio = require('twilio');
+// var twilio = require('twilio');
 const User = require('../models/userSchema')
 const cookieParser = require("cookie-parser");
 router.use(cookieParser());
@@ -42,7 +42,7 @@ router.post('/adminRegister', async (req, res) => {
     }
 
     try {
-        const userExists = await Admin.findOne({ email: email })
+        const userExists = await Admin.findOne({ phone: phone })
 
         if (userExists) {
 
@@ -79,7 +79,7 @@ router.post('/userRegister', async (req, res) => {
     }
 
     try {
-        const userExists = await User.findOne({ email: email })
+        const userExists = await User.findOne({ phone: phone })
 
         if (userExists) {
 
@@ -580,7 +580,7 @@ router.put('/sendsms', async (req, res) => {
     const randNo = Math.floor(1000 + Math.random() * 9000)
     const otp = randNo;
 
-    var client = new twilio(accountSid, authToken);
+    const client = require('twilio')(accountSid, authToken);
 
     await client.messages.create({
         body: `Your OTP is ${otp}`,
