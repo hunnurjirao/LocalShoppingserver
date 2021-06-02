@@ -5,11 +5,14 @@ const bcrypt = require('bcryptjs');
 const authenticateUser = require('../middleware/authenticateUser')
 const authenticateAdmin = require('../middleware/authenticateAdmin')
 require('../db/conn')
+var twilio = require('twilio');
 const User = require('../models/userSchema')
 const cookieParser = require("cookie-parser");
 router.use(cookieParser());
 const Admin = require('../models/adminSchema')
 const AdminProducts = require('../models/adminProductsSchema')
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
 
 router.post('/addProduct', async (req, res) => {
     const { productName, price, uid, email, phone, companyName } = req.body;
@@ -106,14 +109,14 @@ router.post('/userRegister', async (req, res) => {
 
 router.post('/adminLogin', async (req, res) => {
 
-    const { email, password } = req.body;
+    const { phone, password } = req.body;
 
-    if (!email || !password) {
+    if (!phone || !password) {
         return res.status(422).json({ error: "Please fill the required fields!" })
     }
 
     try {
-        const adminLogin = await Admin.findOne({ email: email })
+        const adminLogin = await Admin.findOne({ phone: phone })
 
         if (adminLogin) {
             const isMatch = await bcrypt.compare(password, adminLogin.password);
@@ -144,14 +147,14 @@ router.post('/adminLogin', async (req, res) => {
 
 router.post('/userLogin', async (req, res) => {
 
-    const { email, password } = req.body;
+    const { phone, password } = req.body;
 
-    if (!email || !password) {
+    if (!phone || !password) {
         return res.status(422).json({ error: "Please fill the required fields!" })
     }
 
     try {
-        const userLogin = await User.findOne({ email: email })
+        const userLogin = await User.findOne({ phone: phone })
 
         if (userLogin) {
             const isMatch = await bcrypt.compare(password, userLogin.password);
@@ -393,75 +396,42 @@ router.put('/editProduct', async (req, res) => {
     }
 })
 
-// router.put('/editAdminStatus', async (req, res) => {
-//     try {
-//         console.log(req.body.uid);
-//         var prod = {
-//             _id: req.body.uid,
-//             userid: req.body.userid,
-//             productid: req.body.productid,
-//             quantity: req.body.quantity,
-//             phone: req.body.phone,
-//             status: req.body.status
+router.put('/editAdminStatus', async (req, res) => {
+    try {
 
-//         }
-//         const find = await Admin.findById({ _id: req.body.adminid }, { orders: { _id: req.body.uid } })
+        const find = await Admin.findById({ _id: req.body.adminid }, { orders: { $elemMatch: { _id: req.body.uid } } })
 
-//         const ans = await Admin.findByIdAndUpdate(
-//             { _id: req.body.adminid },
-//             {
-//                 $set: {
-//                     orders: prod
+        find.orders[0].status = req.body.status;
+        const ans = await find.save()
 
-//                 }
-//             },
-//             {
-//                 new: true,
-//                 useFindAndModify: false
-//             }
-//         )
-//         console.log(find)
-//         console.log(ans);
-
-//         res.status(201).json({ message: "Status Updated" })
+        res.status(201).json({ message: "Status Updated" })
 
 
-//     } catch (error) {
-//         console.log(error);
-//     }
-// })
+    } catch (error) {
+        console.log(error);
+    }
+})
 
-// router.put('/editUserStatus', async (req, res) => {
-//     try {
-//         var prod = {
+router.put('/editUserStatus', async (req, res) => {
+    try {
+        var prod = {
 
-//             productid: req.body.pid,
-//             quantity: req.body.quantity,
+            productid: req.body.pid,
+            quantity: req.body.quantity,
 
-//         }
-//         const isadded = await User.findById({ _id: req.body.uid }, { yourOrders: { $elemMatch: prod } });
-//         console.log(isadded);
-//         // await User.findOneAndUpdate(
-//         //     { yourOrders: { productid: req.body.pid } },
-//         //     {
-//         //         $set: {
-//         //             orders: { status: req.body.status }
-
-//         //         }
-//         //     },
-//         //     {
-//         //         new: true,
-//         //         useFindAndModify: false
-//         //     }
-//         // )
-
-//         res.status(201).json({ message: "Status Updated" })
+        }
+        const find = await User.findById({ _id: req.body.uid }, { yourOrders: { $elemMatch: prod } });
+        find.yourOrders[0].status = req.body.status;
+        const ans = await find.save()
 
 
-//     } catch (error) {
-//         console.log(error);
-//     }
-// })
+        res.status(201).json({ message: "Status Updated" })
+
+
+    } catch (error) {
+        console.log(error);
+    }
+})
 
 router.delete('/deleteProduct', async (req, res) => {
     await AdminProducts.deleteOne(
@@ -473,21 +443,28 @@ router.put('/editAdmin', async (req, res) => {
 
     try {
 
-        await Admin.findOneAndUpdate(
-            { _id: req.body.uid },
-            {
-                $set: {
-                    companyName: req.body.companyName,
-                    email: req.body.email,
-                    phone: req.body.phone,
-                    imageUrl: req.body.imageUrl
-                }
-            },
-            {
-                new: true,
-                useFindAndModify: false
-            }
-        )
+        const find = await Admin.findById({ _id: req.body.uid })
+        find.email = req.body.email
+        find.companyName = req.body.companyName
+        find.phone = req.body.phone
+        find.imageUrl = req.body.imageUrl
+
+        const ans = await find.save()
+        // await Admin.findOneAndUpdate(
+        //     { _id: req.body.uid },
+        //     {
+        //         $set: {
+        //             companyName: req.body.companyName,
+        //             email: req.body.email,
+        //             phone: req.body.phone,
+        //             imageUrl: req.body.imageUrl
+        //         }
+        //     },
+        //     {
+        //         new: true,
+        //         useFindAndModify: false
+        //     }
+        // )
 
     } catch (error) {
         console.log(error);
@@ -497,22 +474,28 @@ router.put('/editAdmin', async (req, res) => {
 router.put('/editUser', async (req, res) => {
 
     try {
+        const find = await User.findById({ _id: req.body.uid })
+        find.email = req.body.email
+        find.username = req.body.username
+        find.phone = req.body.phone
+        find.imageUrl = req.body.imageUrl
 
-        await User.findOneAndUpdate(
-            { _id: req.body.uid },
-            {
-                $set: {
-                    username: req.body.username,
-                    email: req.body.email,
-                    phone: req.body.phone,
-                    imageUrl: req.body.imageUrl
-                }
-            },
-            {
-                new: true,
-                useFindAndModify: false
-            }
-        )
+        const ans = await find.save()
+        // await User.findOneAndUpdate(
+        //     { _id: req.body.uid },
+        //     {
+        //         $set: {
+        //             username: req.body.username,
+        //             email: req.body.email,
+        //             phone: req.body.phone,
+        //             imageUrl: req.body.imageUrl
+        //         }
+        //     },
+        //     {
+        //         new: true,
+        //         useFindAndModify: false
+        //     }
+        // )
 
     } catch (error) {
         console.log(error);
@@ -569,5 +552,47 @@ router.put('/logoutAdmin', async (req, res) => {
     }
 })
 
+router.get('/userstoken', async (req, res) => {
+    const ans = await User.find({})
+    const tokenList = []
+    for (var i = 0; i < ans.length; i++) {
+        for (var j = 0; j < ans[i].tokens.length; j++) {
+            tokenList.push(ans[i].tokens[j].token)
+        }
+    }
+    res.send(tokenList)
+})
 
+router.get('/adminstoken', async (req, res) => {
+    const ans = await Admin.find({})
+    const tokenList = []
+    for (var i = 0; i < ans.length; i++) {
+        for (var j = 0; j < ans[i].tokens.length; j++) {
+            tokenList.push(ans[i].tokens[j].token)
+        }
+    }
+    res.send(tokenList)
+})
+
+
+router.put('/sendsms', async (req, res) => {
+
+    const randNo = Math.floor(1000 + Math.random() * 9000)
+    const otp = randNo;
+
+    var client = new twilio(accountSid, authToken);
+
+    await client.messages.create({
+        body: `Your OTP is ${otp}`,
+        to: req.body.phone,  // Text this number
+        from: '+14806669195' // From a valid Twilio number
+    })
+        .then((message) => {
+            console.log(message.sid)
+
+        });
+    res.status(201).json({ otp: otp })
+
+
+})
 module.exports = router
