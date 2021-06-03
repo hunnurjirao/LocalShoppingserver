@@ -8,7 +8,7 @@ const AuthenticateAdmin = async (req, res, next) => {
         const token = req.cookies.jwtoken
         const verifyToken = jwt.verify(token, process.env.SECRET_KEY)
 
-        const rootUser = await Admin.findOne({ _id: verifyToken._id, "tokens.token": token });
+        const rootUser = await Admin.findOne({ _id: verifyToken._id, "tokens.token1": token });
 
         if (!rootUser) { throw new Error('User Not Found') }
 

@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 const authenticateUser = require('../middleware/authenticateUser')
 const authenticateAdmin = require('../middleware/authenticateAdmin')
 require('../db/conn')
-// var twilio = require('twilio');
+const nodemailer = require('nodemailer');
 const User = require('../models/userSchema')
 const cookieParser = require("cookie-parser");
 router.use(cookieParser());
@@ -13,6 +13,14 @@ const Admin = require('../models/adminSchema')
 const AdminProducts = require('../models/adminProductsSchema')
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+var transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'hunnurjirao2000@gmail.com',
+        pass: process.env.password
+    }
+});
 
 router.post('/addProduct', async (req, res) => {
     const { productName, price, uid, email, phone, companyName } = req.body;
@@ -42,7 +50,7 @@ router.post('/adminRegister', async (req, res) => {
     }
 
     try {
-        const userExists = await Admin.findOne({ phone: phone })
+        const userExists = await Admin.findOne({ email: email })
 
         if (userExists) {
 
@@ -59,8 +67,9 @@ router.post('/adminRegister', async (req, res) => {
             await admin.save();
 
             let token = await admin.generateAuthToken()
-            // res.status(201).json({ message: "Registration Successful!" })
-            res.send({ token })
+
+            res.status(201).json(token)
+            // res.send({ token })
         }
 
 
@@ -79,7 +88,7 @@ router.post('/userRegister', async (req, res) => {
     }
 
     try {
-        const userExists = await User.findOne({ phone: phone })
+        const userExists = await User.findOne({ email: email })
 
         if (userExists) {
 
@@ -96,8 +105,8 @@ router.post('/userRegister', async (req, res) => {
             await user.save();
 
             let token = await user.generateAuthToken()
-            // res.status(201).json({ message: "Registration Successful!" })
-            res.send({ token })
+            res.status(201).json({ token })
+            // res.send({  })
         }
 
 
@@ -109,14 +118,14 @@ router.post('/userRegister', async (req, res) => {
 
 router.post('/adminLogin', async (req, res) => {
 
-    const { phone, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!phone || !password) {
+    if (!email || !password) {
         return res.status(422).json({ error: "Please fill the required fields!" })
     }
 
     try {
-        const adminLogin = await Admin.findOne({ phone: phone })
+        const adminLogin = await Admin.findOne({ email: email })
 
         if (adminLogin) {
             const isMatch = await bcrypt.compare(password, adminLogin.password);
@@ -147,14 +156,14 @@ router.post('/adminLogin', async (req, res) => {
 
 router.post('/userLogin', async (req, res) => {
 
-    const { phone, password } = req.body;
+    const { email, password } = req.body;
 
-    if (!phone || !password) {
+    if (!email || !password) {
         return res.status(422).json({ error: "Please fill the required fields!" })
     }
 
     try {
-        const userLogin = await User.findOne({ phone: phone })
+        const userLogin = await User.findOne({ email: email })
 
         if (userLogin) {
             const isMatch = await bcrypt.compare(password, userLogin.password);
@@ -574,25 +583,104 @@ router.get('/adminstoken', async (req, res) => {
     res.send(tokenList)
 })
 
-
-router.put('/sendsms', async (req, res) => {
+router.put('/sendsmsUser', async (req, res) => {
 
     const randNo = Math.floor(1000 + Math.random() * 9000)
     const otp = randNo;
+    const userExists = await User.findOne({ phone: req.body.phone })
 
-    const client = require('twilio')(accountSid, authToken);
+    if (userExists) {
 
-    await client.messages.create({
-        body: `Your OTP is ${otp}`,
-        to: req.body.phone,  // Text this number
-        from: '+14806669195' // From a valid Twilio number
-    })
-        .then((message) => {
-            console.log(message.sid)
+        res.status(400).json({ error: "Phone number already used" })
 
-        });
-    res.status(201).json({ otp: otp })
+    } else {
+        const client = require('twilio')(accountSid, authToken);
+
+        await client.messages.create({
+            body: `Welcome to Local Shopping! \n Thank you for registering for User Account. Your OTP is ${otp}`,
+            to: '+91' + req.body.phone,  // Text this number
+            from: '+14806669195' // From a valid Twilio number
+        })
+            .then((message) => {
+                console.log(message.sid)
+
+            });
+        res.status(201).json({ otp: otp })
+    }
 
 
 })
+
+// router.put('/sendsmsAdmin', async (req, res) => {
+
+//     const randNo = Math.floor(1000 + Math.random() * 9000)
+//     const otp = randNo;
+//     const adminExists = await Admin.findOne({ phone: req.body.phone })
+
+//     if (adminExists) {
+
+//         res.status(400).json({ error: "Phone number already used" })
+
+//     } else {
+//         const client = require('twilio')(accountSid, authToken);
+
+//         await client.messages.create({
+//             body: `Welcome to Local Shopping! \n Thank you for registering for Admin Account. Your OTP is ${otp}`,
+//             to: '+91' + req.body.phone,  // Text this number
+//             from: '+14806669195' // From a valid Twilio number
+//         })
+//             .then((message) => {
+//                 console.log(message.sid)
+
+//             });
+//         res.status(201).json({ otp: otp })
+//     }
+
+
+// })
+
+router.put('/sendmailUser', async (req, res) => {
+
+    const otp = Math.floor(1000 + Math.random() * 9000)
+
+    const adminExists = await User.findOne({ email: req.body.email })
+
+    if (adminExists) {
+        res.status(400).json({ error: "Email number already used" })
+    } else {
+        var mailOptions = {
+            from: 'hunnurjirao2000@gmail.com',
+            to: req.body.email,
+            subject: 'Local Shopping-Verification key',
+            text: `Welcome to Local Shopping! \n Thank you for registering for User Account. The verificatin key is ${otp}`
+        }
+        transporter.sendMail(mailOptions)
+        res.status(201).json({ otp: otp })
+    }
+
+
+})
+
+router.put('/sendmailAdmin', async (req, res) => {
+
+    const otp = Math.floor(1000 + Math.random() * 9000)
+
+    const adminExists = await Admin.findOne({ email: req.body.email })
+
+    if (adminExists) {
+        res.status(400).json({ error: "Email number already used" })
+    } else {
+        var mailOptions = {
+            from: 'hunnurjirao2000@gmail.com',
+            to: req.body.email,
+            subject: 'Local Shopping-Verification key',
+            text: `Welcome to Local Shopping! \n Thank you for registering for Admin Account. The verificatin key is ${otp}`
+        }
+        transporter.sendMail(mailOptions)
+        res.status(201).json({ otp: otp })
+    }
+
+
+})
+
 module.exports = router
